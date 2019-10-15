@@ -103,6 +103,10 @@ class Thread {
     
     void CheckOverflow();   	// Check if thread stack has overflowed
     void setStatus(ThreadStatus st) { status = st; }
+    void setBurstTime(int t)	{burstTime = t;}
+    int getBurstTime()		{return burstTime;}
+    void setPriority(int t)	{priority = t;}
+    int getPriority()		{return priority;}
     char* getName() { return (name); }
     void Print() { cout << name; }
     void SelfTest();		// test whether thread impl is working
@@ -115,7 +119,8 @@ class Thread {
 				// (If NULL, don't deallocate stack)
     ThreadStatus status;	// ready, running or blocked
     char* name;
-
+    int burstTime;
+    int priority;	
     void StackAllocate(VoidFunctionPtr func, void *arg);
     				// Allocate a stack for thread.
 				// Used internally by Fork()

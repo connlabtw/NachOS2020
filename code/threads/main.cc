@@ -69,7 +69,6 @@ main(int argc, char **argv)
 	} else if (strcmp(argv[i], "-z") == 0) {
             cout << copyright;
 	}
-
     }
     debug = new Debug(debugArg);
     
