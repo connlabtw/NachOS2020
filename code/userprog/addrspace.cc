@@ -28,6 +28,9 @@
 //	endian machine, and we're now running on a big endian machine.
 //----------------------------------------------------------------------
 
+
+bool AddrSpace::usedPhyPage[NumPhysPages] = {0};
+
 static void 
 SwapHeader (NoffHeader *noffH)
 {
@@ -50,6 +53,7 @@ SwapHeader (NoffHeader *noffH)
 //	memory.  For now, this is really simple (1:1), since we are
 //	only uniprogramming, and we have a single unsegmented page table
 //----------------------------------------------------------------------
+
 
 AddrSpace::AddrSpace()
 {
@@ -76,6 +80,8 @@ AddrSpace::AddrSpace()
 
 AddrSpace::~AddrSpace()
 {
+   for(int i = 0; i < numPages; i++)
+        AddrSpace::usedPhyPage[pageTable[i].physicalPage] = false;
    delete pageTable;
 }
 
@@ -115,6 +121,21 @@ AddrSpace::Load(char *fileName)
 //	cout << "number of pages of " << fileName<< " is "<<numPages<<endl;
     size = numPages * PageSize;
 
+    numPages = divRoundUp(size,PageSize);
+    for(unsigned int i=0, j=0; i<numPages; i++){
+        pageTable[i].virtualPage = i;
+        while(j<NumPhysPages && AddrSpace::usedPhyPage[j] == true)
+            j++;
+        AddrSpace::usedPhyPage[j] = true;
+        pageTable[i].physicalPage = j;
+        pageTable[i].valid = true;
+        pageTable[i].use = false;
+        pageTable[i].dirty = false;
+        pageTable[i].readOnly = false;
+    }
+
+    size = numPages * PageSize;
+
     ASSERT(numPages <= NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have
@@ -127,14 +148,14 @@ AddrSpace::Load(char *fileName)
         DEBUG(dbgAddr, "Initializing code segment.");
 	DEBUG(dbgAddr, noffH.code.virtualAddr << ", " << noffH.code.size);
         	executable->ReadAt(
-		&(kernel->machine->mainMemory[noffH.code.virtualAddr]), 
+		&(kernel->machine->mainMemory[pageTable[noffH.code.virtualAddr/PageSize].physicalPage * PageSize + (noffH.code.virtualAddr%PageSize)]), 
 			noffH.code.size, noffH.code.inFileAddr);
     }
 	if (noffH.initData.size > 0) {
         DEBUG(dbgAddr, "Initializing data segment.");
 	DEBUG(dbgAddr, noffH.initData.virtualAddr << ", " << noffH.initData.size);
         executable->ReadAt(
-		&(kernel->machine->mainMemory[noffH.initData.virtualAddr]),
+		&(kernel->machine->mainMemory[pageTable[noffH.initData.virtualAddr/PageSize].physicalPage * PageSize + (noffH.code.virtualAddr%PageSize)]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
 
